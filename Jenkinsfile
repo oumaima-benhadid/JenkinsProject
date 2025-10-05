@@ -1,11 +1,12 @@
 pipeline {
   agent any
 
+  tools {
+    jdk 'JAVA_HOME'      // Nom exact de ton JDK configuré
+    maven 'M2_HOME'   // Nom exact de ton Maven configuré
+  }
+
   environment {
-    JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
-    PATH = "${JAVA_HOME}/bin:${env.PATH}"
-    M2_HOME = '/usr/share/maven'   // Remplace par le chemin réel vers Maven si différent
-    PATH = "${M2_HOME}/bin:${env.PATH}"
     SONAR_INSTALL = 'sonarQube'
   }
 
