@@ -1,41 +1,49 @@
 pipeline {
   agent any
+
   tools {
     maven 'M2_HOME'     
-    jdk 'JAVA_HOME'        
+    jdk 'JAVA_HOME'       
   }
+
   environment {
     SONAR_INSTALL = 'sonarQube' 
   }
+
   stages {
-    stage('1 - Checkout (git)') {
+
+    stage('1 - Checkout (Git)') {
       steps {
         checkout scm
       }
     }
 
-    stage('2 - Maven clean') {
+    stage('2 - Maven Clean') {
       steps {
+        echo ' Nettoyage du projet...'
         sh 'mvn -B clean'
       }
     }
 
-    stage('3 - Maven compile (package)') {
+    stage('3 - Maven Compile') {
       steps {
-        sh 'mvn -B -DskipTests=true package'
+        echo 'Compilation du projet'
+        sh 'mvn -B -DskipTests=true compile'
       }
     }
 
-    stage('4 - SonarQube analysis') {
+    stage('4 - SonarQube Analysis') {
       steps {
+        echo 'Lancement de l’analyse SonarQube'
         withSonarQubeEnv("${SONAR_INSTALL}") {
           sh 'mvn -B sonar:sonar'
         }
       }
     }
 
-    stage('5 - Build final & archive jar') {
+    stage('5 - Build & Archive JAR') {
       steps {
+        echo 'Construction du package final'
         sh 'mvn -B -DskipTests=false package'
         archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
       }
@@ -43,6 +51,7 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
+        echo 'Vérification du Quality Gate SonarQube...'
         timeout(time: 15, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
@@ -52,10 +61,10 @@ pipeline {
 
   post {
     success {
-      echo 'Pipeline terminé: SUCCESS'
+      echo 'Pipeline terminé avec succès'
     }
     failure {
-      echo 'Pipeline terminé: FAILURE'
+      echo 'Échec du pipeline.'
     }
   }
 }
