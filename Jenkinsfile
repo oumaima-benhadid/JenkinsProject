@@ -2,8 +2,8 @@ pipeline {
   agent any
 
   tools {
-    jdk 'JAVA_HOME'      // Nom exact de ton JDK configuré
-    maven 'M2_HOME'   // Nom exact de ton Maven configuré
+    jdk '$JAVA_HOME'      // Nom exact de ton JDK configuré
+    maven '$M2_HOME'   // Nom exact de ton Maven configuré
   }
 
   environment {
