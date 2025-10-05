@@ -2,8 +2,12 @@ pipeline {
   agent any
 
   tools {
-    jdk '$JAVA_HOME'      // Nom exact de ton JDK configuré
-    maven '$M2_HOME'   // Nom exact de ton Maven configuré
+    // Ces lignes vont provoquer une erreur, car Jenkins ne reconnaît pas $JAVA_HOME et $M2_HOME
+    // Il vaut mieux mettre les noms exacts définis dans Jenkins, par exemple :
+    // jdk 'jdk17'
+    // maven 'Maven4'
+    jdk '$JAVA_HOME'
+    maven '$M2_HOME'
   }
 
   environment {
@@ -36,8 +40,15 @@ pipeline {
     stage('4 - SonarQube Analysis') {
       steps {
         echo 'Lancement de l’analyse SonarQube...'
-        withSonarQubeEnv("${SONAR_INSTALL}") {
-          sh 'mvn -B sonar:sonar'
+        withEnv([
+            "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64",
+            "PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:${env.PATH}",
+            "M2_HOME=/usr/share/maven",
+            "PATH=/usr/share/maven/bin:${env.PATH}"
+        ]) {
+            withSonarQubeEnv('sonarQube') {
+                sh 'mvn -B sonar:sonar'
+            }
         }
       }
     }
