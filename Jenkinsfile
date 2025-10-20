@@ -43,16 +43,19 @@ pipeline {
       }
     }
 
-    stage('5 - Docker Build & Push') {
-      steps {
-        echo 'Construction et push de l’image Docker...'
-        sh """
-          docker login -u omaimaabhd1807 -p \$DOCKERHUB_PASSWORD
-          docker build -t ${DOCKER_IMAGE} .
-          docker push ${DOCKER_IMAGE}
-        """
-      }
+   stage('5 - Docker Build & Push') {
+  steps {
+    echo 'Construction et push de l’image Docker...'
+    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+      sh """
+        docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+        docker build -t ${DOCKER_IMAGE} .
+        docker push ${DOCKER_IMAGE}
+      """
     }
+  }
+}
+
 
     stage('6 - Deploy MySQL') {
       steps {
