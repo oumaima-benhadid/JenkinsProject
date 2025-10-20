@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: projet-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: projet-app
+  template:
+    metadata:
+      labels:
+        app: projet-app
+    spec:
+      containers:
+        - name: projet-app
+          image: omaimaabhd1807/springapp:latest
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://localhost:3306/TPProjet?createDatabaseIfNotExist=true
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-user
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-password
+
