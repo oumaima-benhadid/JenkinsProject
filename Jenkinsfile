@@ -2,16 +2,15 @@ pipeline {
   agent any
 
   tools {
-    // Ces lignes vont provoquer une erreur, car Jenkins ne reconnaît pas $JAVA_HOME et $M2_HOME
-    // Il vaut mieux mettre les noms exacts définis dans Jenkins, par exemple :
-    // jdk 'jdk17'
-    // maven 'Maven4'
+    // Remplace par les noms exacts définis dans Jenkins
     jdk '$JAVA_HOME'
     maven '$M2_HOME'
   }
 
   environment {
     SONAR_INSTALL = 'sonarQube'
+    DOCKER_IMAGE = 'omaimaabhd1807/springapp:latest'
+    NAMESPACE = 'devops'
   }
 
   stages {
@@ -69,6 +68,32 @@ pipeline {
         }
       }
     }
+
+    stage('6 - Docker Build & Push') {
+      steps {
+        echo 'Construction et push de l’image Docker...'
+        sh """
+          docker login -u omaimaabhd1807 -p \$DOCKERHUB_PASSWORD
+          docker build -t ${DOCKER_IMAGE} .
+          docker push ${DOCKER_IMAGE}
+        """
+      }
+    }
+
+    stage('7 - Deploy MySQL') {
+      steps {
+        echo 'Déploiement de MySQL sur Kubernetes...'
+        sh "kubectl apply -f k8s/mysql-deployment.yaml -n ${NAMESPACE}"
+      }
+    }
+
+    stage('8 - Deploy Spring Boot') {
+      steps {
+        echo 'Déploiement de l’application Spring Boot sur Kubernetes...'
+        sh "kubectl apply -f k8s/spring-deployment.yaml -n ${NAMESPACE}"
+      }
+    }
+
   }
 
   post {
