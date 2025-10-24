@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         SONAR_INSTALL = 'sonarQube' 
-        DOCKERHUB_CREDENTIALS = 'dockerhub-id' // ID des credentials Docker Hub dans Jenkins
+        DOCKERHUB_CREDENTIALS = 'dockerhub-creds' // ID des credentials Docker Hub dans Jenkins
         IMAGE_NAME = 'omaimaabhd1807/springapp'
         IMAGE_TAG = 'latest'
         KUBECONFIG = '/var/lib/jenkins/.kube/config' 
