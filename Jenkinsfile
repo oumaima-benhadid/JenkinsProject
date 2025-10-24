@@ -66,7 +66,7 @@ pipeline {
                 sh '''
                     echo "Connexion à Docker Hub..."
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    docker push islemab/restaurant-app:v1
+                    docker push omaimaabhd1807/springapp:latest
                 '''
             }
         }
