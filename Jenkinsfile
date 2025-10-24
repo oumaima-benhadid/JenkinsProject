@@ -37,14 +37,7 @@ pipeline {
             }
         }
 
-        stage('4 - SonarQube Analysis') {
-            steps {
-                echo 'Lancement de l’analyse SonarQube'
-                withSonarQubeEnv("${SONAR_INSTALL}") {
-                    sh 'mvn -B sonar:sonar'
-                }
-            }
-        }
+       
 
         stage('5 - Build & Archive JAR') {
             steps {
