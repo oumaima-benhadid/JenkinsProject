@@ -1,84 +1,104 @@
 pipeline {
-  agent any
+    agent any
 
-  tools {
-    // Remplace par les noms exacts définis dans Jenkins
-    jdk '$JAVA_HOME'
-    maven '$M2_HOME'
-  }
-
-  environment {
-    DOCKER_IMAGE = 'omaimaabhd1807/springapp:latest'
-    NAMESPACE = 'devops'
-  }
-
-  stages {
-
-    stage('1 - Checkout (Git)') {
-      steps {
-        echo 'Récupération du code source...'
-        checkout scm
-      }
+    tools {
+        maven 'M2_HOME'
+        jdk 'JAVA_HOME'
     }
 
-    stage('2 - Maven Clean') {
-      steps {
-        echo 'Nettoyage du projet...'
-        sh 'mvn -B clean'
-      }
+    environment {
+        SONAR_INSTALL = 'SQ' 
+        DOCKERHUB_CREDENTIALS = 'dockerhub-id' // ID des credentials Docker Hub dans Jenkins
+        IMAGE_NAME = 'omaimaabhd1807/springapp'
+        IMAGE_TAG = 'latest'
+        KUBECONFIG = '/var/lib/jenkins/.kube/config' 
     }
 
-    stage('3 - Maven Compile') {
-      steps {
-        echo 'Compilation du projet...'
-        sh 'mvn -B -DskipTests=true compile'
-      }
-    }
+    stages {
 
-    stage('4 - Build & Archive JAR') {
-      steps {
-        echo 'Construction du package final...'
-        sh 'mvn -B -DskipTests=true package'
-        archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-      }
-    }
+        // ---------------- CI ----------------
+        stage('1 - Checkout (Git)') {
+            steps {
+                checkout scm
+            }
+        }
 
-   stage('5 - Docker Build & Push') {
-  steps {
-    echo 'Construction et push de l’image Docker...'
-    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-      sh """
-        docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-        docker build -t ${DOCKER_IMAGE} .
-        docker push ${DOCKER_IMAGE}
-      """
+        stage('2 - Maven Clean') {
+            steps {
+                echo 'Nettoyage du projet...'
+                sh 'mvn -B clean'
+            }
+        }
+
+        stage('3 - Maven Compile') {
+            steps {
+                echo 'Compilation du projet'
+                sh 'mvn -B -DskipTests=true compile'
+            }
+        }
+
+        stage('4 - SonarQube Analysis') {
+            steps {
+                echo 'Lancement de l’analyse SonarQube'
+                withSonarQubeEnv("${SONAR_INSTALL}") {
+                    sh 'mvn -B sonar:sonar'
+                }
+            }
+        }
+
+        stage('5 - Build & Archive JAR') {
+            steps {
+                echo 'Construction du package final'
+                sh 'mvn -B -DskipTests=true package'
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            }
+        }
+
+       
+
+        // ---------------- CD ----------------
+        stage('6 - Build Docker Image') {
+            steps {
+                script {
+                    echo "Création de l'image Docker..."
+                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                }
+            }
+        }
+
+        stage('7 - Push Docker Image') {
+        steps {
+        script {
+            withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                sh '''
+                    echo "Connexion à Docker Hub..."
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push islemab/restaurant-app:v1
+                '''
+            }
+        }
     }
-  }
 }
 
 
-    stage('6 - Deploy MySQL') {
-      steps {
-        echo 'Déploiement de MySQL sur Kubernetes...'
-        sh "kubectl apply -f k8s/mysql_deployment.yaml -n ${NAMESPACE}"
-      }
+        stage('8 - Deploy to Minikube') {
+    steps {
+        echo "Déploiement MySQL et backend sur Minikube..."
+        sh 'kubectl --kubeconfig=/var/lib/jenkins/.kube/config apply -f mysql-secret.yaml'
+        sh 'kubectl --kubeconfig=/var/lib/jenkins/.kube/config apply -f mysql-deployment.yaml'
+        sh 'kubectl --kubeconfig=/var/lib/jenkins/.kube/config apply -f restaurant-app-deployment.yaml'
+        sh 'kubectl --kubeconfig=/var/lib/jenkins/.kube/config apply -f restaurant-app-service.yaml'
+    }
+}
+
     }
 
-    stage('7 - Deploy Spring Boot') {
-      steps {
-        echo 'Déploiement de l’application Spring Boot sur Kubernetes...'
-        sh "kubectl apply -f k8s/spring-deployment.yaml -n ${NAMESPACE}"
-      }
+    post {
+        success {
+            echo 'Pipeline CI/CD terminé avec succès '
+        }
+        failure {
+            echo 'Échec du pipeline '
+        }
     }
-
-  }
-
-  post {
-    success {
-      echo 'Pipeline terminé avec succès.'
-    }
-    failure {
-      echo 'Échec du pipeline.'
-    }
-  }
 }
